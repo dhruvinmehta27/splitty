@@ -30,6 +30,8 @@ type State = {
   expenses: Expense[];
   addGroup: (name: string, memberNames: string[]) => string;
   addMember: (groupId: string, name: string) => void;
+  removeMember: (groupId: string, memberId: string) => void;
+  deleteGroup: (id: string) => void;
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
   deleteExpense: (id: string) => void;
 };
@@ -56,8 +58,21 @@ export const useStore = create<State>()(
             g.id === groupId ? { ...g, members: [...g.members, { id: newId(), name }] } : g,
           ),
         })),
+      removeMember: (groupId, memberId) =>
+        set((s) => ({
+          groups: s.groups.map((g) =>
+            g.id === groupId ? { ...g, members: g.members.filter((m) => m.id !== memberId) } : g,
+          ),
+        })),
+      deleteGroup: (id) =>
+        set((s) => ({
+          groups: s.groups.filter((g) => g.id !== id),
+          expenses: s.expenses.filter((e) => e.groupId !== id),
+        })),
       addExpense: (expense) =>
-        set((s) => ({ expenses: [{ ...expense, id: newId(), createdAt: Date.now() }, ...s.expenses] })),
+        set((s) => ({
+          expenses: [{ ...expense, id: newId(), createdAt: Date.now() }, ...s.expenses],
+        })),
       deleteExpense: (id) => set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) })),
     }),
     { name: 'splitty', version: 1, storage: createJSONStorage(() => AsyncStorage) },
@@ -69,4 +84,9 @@ const formatters: Record<string, Intl.NumberFormat> = {};
 export function formatMoney(cents: number, currency: string) {
   formatters[currency] ??= new Intl.NumberFormat(undefined, { style: 'currency', currency });
   return formatters[currency].format(cents / 100);
+}
+
+/** True if the member paid for or has a share in any of these expenses. */
+export function isInvolved(memberId: string, expenses: Expense[]) {
+  return expenses.some((e) => e.paidBy === memberId || e.shares[memberId] !== undefined);
 }
