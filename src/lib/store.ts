@@ -34,6 +34,7 @@ type State = {
   deleteGroup: (id: string) => void;
   addExpense: (expense: Omit<Expense, 'id' | 'createdAt'>) => void;
   deleteExpense: (id: string) => void;
+  replaceAll: (groups: Group[], expenses: Expense[]) => void;
 };
 
 export const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
@@ -74,6 +75,7 @@ export const useStore = create<State>()(
           expenses: [{ ...expense, id: newId(), createdAt: Date.now() }, ...s.expenses],
         })),
       deleteExpense: (id) => set((s) => ({ expenses: s.expenses.filter((e) => e.id !== id) })),
+      replaceAll: (groups, expenses) => set({ groups, expenses }),
     }),
     { name: 'splitty', version: 1, storage: createJSONStorage(() => AsyncStorage) },
   ),

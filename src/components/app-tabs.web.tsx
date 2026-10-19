@@ -17,6 +17,9 @@ export default function AppTabs() {
         <TabTrigger name="friends" href="/friends" asChild>
           <TabButton>Friends</TabButton>
         </TabTrigger>
+        <TabTrigger name="settings" href="/settings" asChild>
+          <TabButton>Settings</TabButton>
+        </TabTrigger>
       </TabList>
     </Tabs>
   );
@@ -26,7 +29,9 @@ export default function AppTabs() {
 function TabButton({ children, isFocused, ref: _ref, ...props }: TabTriggerSlotProps) {
   return (
     <Pressable {...props} style={({ pressed }) => pressed && styles.pressed}>
-      <ThemedView type={isFocused ? 'backgroundSelected' : 'backgroundElement'} style={styles.tabButton}>
+      <ThemedView
+        type={isFocused ? 'backgroundSelected' : 'backgroundElement'}
+        style={styles.tabButton}>
         <ThemedText type="small" themeColor={isFocused ? 'text' : 'textSecondary'}>
           {children}
         </ThemedText>
