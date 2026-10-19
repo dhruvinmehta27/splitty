@@ -66,6 +66,7 @@ export default function AddExpenseScreen() {
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled">
         <TextInput
           style={[styles.amount, { color: theme.text }]}

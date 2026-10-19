@@ -35,6 +35,7 @@ export default function GroupsScreen() {
       <FlatList
         style={styles.list}
         contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         data={groups}
         keyExtractor={(g) => g.id}

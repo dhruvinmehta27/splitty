@@ -32,6 +32,7 @@ export default function GroupScreen() {
       <FlatList
         style={styles.list}
         contentContainerStyle={styles.content}
+        contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
         data={expenses}
         keyExtractor={(e) => e.id}
