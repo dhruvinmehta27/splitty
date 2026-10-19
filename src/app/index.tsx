@@ -1,98 +1,113 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
+import { NetLabel, Positive } from '@/components/net-label';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { useStore } from '@/lib/store';
+import { balances } from '@/lib/split';
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
-  );
-}
+export default function GroupsScreen() {
+  const groups = useStore((s) => s.groups);
+  const expenses = useStore((s) => s.expenses);
+  const addGroup = useStore((s) => s.addGroup);
+  const theme = useTheme();
+  const [name, setName] = useState('');
+  const [members, setMembers] = useState('');
 
-export default function HomeScreen() {
+  const memberNames = ['You', ...members.split(',').map((m) => m.trim()).filter(Boolean)];
+  const canCreate = name.trim() !== '' && memberNames.length > 1;
+
+  function create() {
+    if (!canCreate) return;
+    addGroup(name.trim(), memberNames);
+    setName('');
+    setMembers('');
+  }
+
+  const inputStyle = [styles.input, { color: theme.text, backgroundColor: theme.background }];
+
   return (
     <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
-
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
-
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
-
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
+      <FlatList
+        style={styles.list}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        data={groups}
+        keyExtractor={(g) => g.id}
+        ListHeaderComponent={
+          <ThemedView type="backgroundElement" style={styles.card}>
+            <ThemedText type="smallBold">New group</ThemedText>
+            <TextInput
+              style={inputStyle}
+              placeholder="Name, e.g. Lisbon trip"
+              placeholderTextColor={theme.textSecondary}
+              value={name}
+              onChangeText={setName}
+              returnKeyType="next"
+            />
+            <TextInput
+              style={inputStyle}
+              placeholder="Friends, comma separated"
+              placeholderTextColor={theme.textSecondary}
+              value={members}
+              onChangeText={setMembers}
+              onSubmitEditing={create}
+              returnKeyType="done"
+            />
+            <Pressable
+              onPress={create}
+              disabled={!canCreate}
+              style={({ pressed }) => [styles.button, (!canCreate || pressed) && styles.dim]}>
+              <ThemedText style={styles.buttonText}>Create</ThemedText>
+            </Pressable>
+          </ThemedView>
+        }
+        renderItem={({ item }) => {
+          const you = item.members[0]?.id;
+          const net = balances(expenses.filter((e) => e.groupId === item.id))[you] ?? 0;
+          return (
+            <Pressable
+              onPress={() => router.push({ pathname: '/group/[id]', params: { id: item.id } })}
+              style={({ pressed }) => [styles.row, pressed && styles.dim]}>
+              <View style={styles.rowText}>
+                <ThemedText>{item.name}</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {item.members.map((m) => m.name).join(', ')}
+                </ThemedText>
+              </View>
+              <NetLabel cents={net} currency={item.currency} />
+            </Pressable>
+          );
+        }}
+      />
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
+  container: { flex: 1, alignItems: 'center' },
+  list: { width: '100%', maxWidth: MaxContentWidth },
+  content: { padding: Spacing.three, gap: Spacing.two },
+  card: { padding: Spacing.three, borderRadius: Spacing.three, gap: Spacing.two, marginBottom: Spacing.two },
+  input: { fontSize: 16, paddingHorizontal: Spacing.three, paddingVertical: 12, borderRadius: Spacing.two },
+  button: {
+    backgroundColor: Positive,
+    borderRadius: Spacing.two,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  buttonText: { color: '#fff', fontWeight: 700 },
+  dim: { opacity: 0.6 },
+  row: {
     flexDirection: 'row',
-  },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
     alignItems: 'center',
     gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+    paddingVertical: Spacing.three,
+    paddingHorizontal: Spacing.one,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
-  },
-  title: {
-    textAlign: 'center',
-  },
-  code: {
-    textTransform: 'uppercase',
-  },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
-  },
+  rowText: { flex: 1 },
 });

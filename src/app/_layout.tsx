@@ -1,18 +1,36 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { useStore } from '@/lib/store';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
+export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [hydrated, setHydrated] = useState(useStore.persist.hasHydrated());
+
+  useEffect(() => {
+    if (hydrated) {
+      SplashScreen.hideAsync();
+      return;
+    }
+    return useStore.persist.onFinishHydration(() => setHydrated(true));
+  }, [hydrated]);
+
+  if (!hydrated) return null;
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+      <Stack>
+        <Stack.Screen name="index" options={{ title: 'Groups' }} />
+        <Stack.Screen name="group/[id]/index" options={{ title: '' }} />
+        <Stack.Screen
+          name="group/[id]/add-expense"
+          options={{ title: 'Add expense', presentation: 'modal', animation: 'slide_from_bottom' }}
+        />
+      </Stack>
     </ThemeProvider>
   );
 }
