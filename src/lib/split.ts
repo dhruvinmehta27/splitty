@@ -95,3 +95,24 @@ export function balances(
   }
   return net;
 }
+
+/**
+ * What each other member owes `me` across these expenses, without simplification:
+ * only debts between me and the payer count. Positive means they owe me.
+ */
+export function owedTo(
+  me: string,
+  expenses: { paidBy: string; shares: Shares }[],
+): Record<string, number> {
+  const owed: Record<string, number> = {};
+  for (const e of expenses) {
+    if (e.paidBy === me) {
+      for (const [id, c] of Object.entries(e.shares)) {
+        if (id !== me) owed[id] = (owed[id] ?? 0) + c;
+      }
+    } else if (e.shares[me]) {
+      owed[e.paidBy] = (owed[e.paidBy] ?? 0) - e.shares[me];
+    }
+  }
+  return owed;
+}

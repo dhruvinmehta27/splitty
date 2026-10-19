@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { balances, computeSplit, parseCents } from './split.ts';
+import { balances, computeSplit, owedTo, parseCents } from './split.ts';
 
 const sum = (shares) => Object.values(shares).reduce((a, b) => a + b, 0);
 
@@ -55,4 +55,13 @@ test('balances net to zero', () => {
   ]);
   assert.deepEqual(net, { a: 450, b: 0, c: -450 });
   assert.equal(sum(net), 0);
+});
+
+test('owedTo counts only debts between me and the payer', () => {
+  const expenses = [
+    { paidBy: 'me', shares: { me: 300, a: 300, b: 300 } },
+    { paidBy: 'a', shares: { me: 200, a: 200, b: 200 } },
+    { paidBy: 'b', shares: { a: 500, b: 500 } },
+  ];
+  assert.deepEqual(owedTo('me', expenses), { a: 100, b: 300 });
 });
