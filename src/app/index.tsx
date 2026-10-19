@@ -16,16 +16,23 @@ export default function GroupsScreen() {
   const addGroup = useStore((s) => s.addGroup);
   const theme = useTheme();
   const [name, setName] = useState('');
-  const [members, setMembers] = useState('');
+  const [friend, setFriend] = useState('');
+  const [friends, setFriends] = useState<string[]>([]);
 
-  const memberNames = ['You', ...members.split(',').map((m) => m.trim()).filter(Boolean)];
-  const canCreate = name.trim() !== '' && memberNames.length > 1;
+  const canAddFriend = friend.trim() !== '';
+  const canCreate = name.trim() !== '' && friends.length > 0;
+
+  function addFriend() {
+    if (!canAddFriend) return;
+    setFriends((f) => [...f, friend.trim()]);
+    setFriend('');
+  }
 
   function create() {
     if (!canCreate) return;
-    addGroup(name.trim(), memberNames);
+    addGroup(name.trim(), ['You', ...friends]);
     setName('');
-    setMembers('');
+    setFriends([]);
   }
 
   const inputStyle = [styles.input, { color: theme.text, backgroundColor: theme.background }];
@@ -50,15 +57,40 @@ export default function GroupsScreen() {
               onChangeText={setName}
               returnKeyType="next"
             />
-            <TextInput
-              style={inputStyle}
-              placeholder="Friends, comma separated"
-              placeholderTextColor={theme.textSecondary}
-              value={members}
-              onChangeText={setMembers}
-              onSubmitEditing={create}
-              returnKeyType="done"
-            />
+            <View style={styles.friendRow}>
+              <TextInput
+                style={[inputStyle, styles.flex]}
+                placeholder="Add a friend"
+                placeholderTextColor={theme.textSecondary}
+                value={friend}
+                onChangeText={setFriend}
+                onSubmitEditing={addFriend}
+                submitBehavior="submit"
+                returnKeyType="next"
+              />
+              <Pressable
+                onPress={addFriend}
+                disabled={!canAddFriend}
+                accessibilityLabel="Add friend"
+                hitSlop={8}
+                style={({ pressed }) => [styles.plus, (!canAddFriend || pressed) && styles.dim]}>
+                <ThemedText style={styles.plusText}>+</ThemedText>
+              </Pressable>
+            </View>
+            {friends.length > 0 && (
+              <View style={styles.chips}>
+                {friends.map((f, i) => (
+                  <Pressable
+                    key={i}
+                    onPress={() => setFriends((all) => all.filter((_, j) => j !== i))}
+                    accessibilityLabel={`Remove ${f}`}>
+                    <ThemedView style={styles.chip}>
+                      <ThemedText type="small">{f}  ×</ThemedText>
+                    </ThemedView>
+                  </Pressable>
+                ))}
+              </View>
+            )}
             <Pressable
               onPress={create}
               disabled={!canCreate}
@@ -103,6 +135,19 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: '#fff', fontWeight: 700 },
   dim: { opacity: 0.6 },
+  flex: { flex: 1 },
+  friendRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
+  plus: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Positive,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusText: { color: '#fff', fontSize: 26, lineHeight: 28, fontWeight: 600 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
+  chip: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.one, borderRadius: 999 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
