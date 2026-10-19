@@ -1,21 +1,36 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Positive } from '@/components/net-label';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
 import { backupFileName, makeBackup, mergeBackup, parseBackup } from '@/lib/backup';
 import { pickBackupFile, saveBackupFile } from '@/lib/backup-file';
 import { inform } from '@/lib/confirm';
 import { useStore } from '@/lib/store';
+import { parseShareLink, syncEnabled } from '@/lib/sync';
 
 export default function SettingsScreen() {
   const groups = useStore((s) => s.groups);
   const expenses = useStore((s) => s.expenses);
   const replaceAll = useStore((s) => s.replaceAll);
   const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState('');
+  const theme = useTheme();
+
+  function join() {
+    const parsed = parseShareLink(link);
+    if (!parsed) {
+      inform('Not a group link', 'Paste the whole link your friend sent you.');
+      return;
+    }
+    setLink('');
+    router.push({ pathname: '/join/[id]', params: { id: parsed.groupId, key: parsed.key } });
+  }
 
   async function exportBackup() {
     setBusy(true);
@@ -58,12 +73,31 @@ export default function SettingsScreen() {
           contentContainerStyle={styles.content}
           contentInsetAdjustmentBehavior="automatic">
           <ThemedText type="subtitle">Settings</ThemedText>
+          {syncEnabled && (
+            <ThemedView type="backgroundElement" style={styles.card}>
+              <ThemedText type="smallBold">Join a shared group</ThemedText>
+              <TextInput
+                style={[styles.input, { color: theme.text, backgroundColor: theme.background }]}
+                placeholder="Paste the link a friend sent"
+                placeholderTextColor={theme.textSecondary}
+                value={link}
+                onChangeText={setLink}
+                onSubmitEditing={join}
+                autoCapitalize="none"
+                autoCorrect={false}
+                returnKeyType="go"
+              />
+              <Button label="Join" onPress={join} disabled={!link.trim()} />
+            </ThemedView>
+          )}
           <ThemedView type="backgroundElement" style={styles.card}>
             <ThemedText type="smallBold">Backup</ThemedText>
             <ThemedText type="small" themeColor="textSecondary">
-              Your data is stored only on this device. Export a backup file to keep it safe or move
-              it to another phone or browser. Importing adds what&apos;s missing and never deletes
-              anything.
+              {syncEnabled
+                ? 'Groups you share are also kept on the server. '
+                : 'Your data is stored only on this device. '}
+              Export a backup file to keep it safe or move it to another phone or browser. Importing
+              adds what&apos;s missing and never deletes anything.
             </ThemedText>
             <Button label="Export backup" onPress={exportBackup} disabled={busy} />
             <Button label="Import backup" onPress={importBackup} disabled={busy} secondary />
@@ -104,6 +138,12 @@ const styles = StyleSheet.create({
   safe: { flex: 1, alignItems: 'center' },
   scroll: { width: '100%', maxWidth: MaxContentWidth },
   content: { padding: Spacing.three, gap: Spacing.two },
+  input: {
+    fontSize: 16,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 12,
+    borderRadius: Spacing.two,
+  },
   card: { padding: Spacing.three, borderRadius: Spacing.three, gap: Spacing.two },
   button: {
     backgroundColor: Positive,

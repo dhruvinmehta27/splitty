@@ -1,56 +1,45 @@
-# Welcome to your Expo app 👋
+# Splitty
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Split expenses with friends. One codebase for iPhone, Android and the web, built with
+[Expo](https://expo.dev) (React Native + TypeScript).
 
-## Get started
+- Groups, four ways to split (equally, exact amounts, percentages, shares), balances per group and per friend
+- Everything is saved on your device first, so the app responds instantly and works offline
+- Optional sharing: send a group's secret link to friends and it stays in sync for everyone
+- Backup export and import in Settings
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run it
 
 ```bash
-npm run reset-project
+npm install
+npx expo start        # press i for the iOS simulator, w for the browser
+npm test              # split, backup and sync logic
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Without any configuration the app keeps data on the device only and hides sharing.
 
-### Other setup steps
+## Sharing: bring your own database
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Shared groups live in a database you control. This repository contains no database and no keys.
 
-## Learn more
+1. Create a free database at [SQLite Cloud](https://sqlitecloud.io) and copy its connection string
+   (it contains an API key, so keep it secret).
+2. Import this repository into [Vercel](https://vercel.com). `vercel.json` already configures the
+   build, and `api/sync.ts` becomes the sync server. Tables are created on first use.
+3. In Vercel, under Project → Settings → Environment Variables, add:
+   - `SQLITECLOUD_URL`: your connection string (server only, never shipped to the app)
+   - `EXPO_PUBLIC_API_URL`: your Vercel address, e.g. `https://my-splitty.vercel.app`
+4. Redeploy. The Share button appears in each group.
 
-To learn more about developing your project with Expo, look at the following resources:
+For the iPhone or Android app, put `EXPO_PUBLIC_API_URL` in `.env.local` before building.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+To try sharing locally, copy `.env.example` to `.env.local`, fill it in, then run `npm run dev:api`
+next to `npx expo start`.
 
-## Join the community
+### How sharing stays private
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- The database key exists only on the server. The app talks to `api/sync.ts`, never to the database.
+- Each shared group has a random 256-bit key that is part of its link, after the `#`, so browsers
+  don't send it in page requests. The server stores only its SHA-256 hash.
+- Anyone with a group's link can read and edit that group, so share it only with its members.
+- When the same expense is edited in two places, the most recent edit wins.

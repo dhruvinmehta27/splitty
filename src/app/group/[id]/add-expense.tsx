@@ -8,7 +8,7 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { computeSplit, parseCents, type SplitMode } from '@/lib/split';
-import { formatMoney, useStore } from '@/lib/store';
+import { formatMoney, meIn, useStore } from '@/lib/store';
 
 const MODES: { mode: SplitMode; label: string }[] = [
   { mode: 'equal', label: 'Equally' },
@@ -20,12 +20,13 @@ const MODES: { mode: SplitMode; label: string }[] = [
 export default function AddExpenseScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const group = useStore((s) => s.groups.find((g) => g.id === id));
+  const me = useStore((s) => s.me);
   const addExpense = useStore((s) => s.addExpense);
   const theme = useTheme();
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [paidBy, setPaidBy] = useState(group?.members[0]?.id ?? '');
+  const [paidBy, setPaidBy] = useState(group ? meIn(group, me) : '');
   const [mode, setMode] = useState<SplitMode>('equal');
   // One input map per mode, so switching modes doesn't lose what was typed.
   const [inputs, setInputs] = useState<Record<SplitMode, Record<string, string>>>({
@@ -90,14 +91,24 @@ export default function AddExpenseScreen() {
         <ThemedText type="smallBold">Paid by</ThemedText>
         <View style={styles.chips}>
           {group.members.map((m) => (
-            <Chip key={m.id} label={m.name} active={paidBy === m.id} onPress={() => setPaidBy(m.id)} />
+            <Chip
+              key={m.id}
+              label={m.name}
+              active={paidBy === m.id}
+              onPress={() => setPaidBy(m.id)}
+            />
           ))}
         </View>
 
         <ThemedText type="smallBold">Split</ThemedText>
         <View style={styles.chips}>
           {MODES.map((m) => (
-            <Chip key={m.mode} label={m.label} active={mode === m.mode} onPress={() => setMode(m.mode)} />
+            <Chip
+              key={m.mode}
+              label={m.label}
+              active={mode === m.mode}
+              onPress={() => setMode(m.mode)}
+            />
           ))}
         </View>
 
@@ -157,7 +168,9 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
   return (
     <Pressable onPress={onPress}>
       <ThemedView type={active ? 'backgroundSelected' : 'backgroundElement'} style={styles.chip}>
-        <ThemedText type={active ? 'smallBold' : 'small'} themeColor={active ? 'text' : 'textSecondary'}>
+        <ThemedText
+          type={active ? 'smallBold' : 'small'}
+          themeColor={active ? 'text' : 'textSecondary'}>
           {label}
         </ThemedText>
       </ThemedView>
@@ -170,14 +183,24 @@ const styles = StyleSheet.create({
   scroll: { width: '100%', maxWidth: MaxContentWidth },
   content: { padding: Spacing.three, gap: Spacing.three },
   amount: { fontSize: 44, fontWeight: 700, textAlign: 'center', paddingVertical: Spacing.two },
-  input: { fontSize: 16, paddingHorizontal: Spacing.three, paddingVertical: 12, borderRadius: Spacing.two },
+  input: {
+    fontSize: 16,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: 12,
+    borderRadius: Spacing.two,
+  },
   smallInput: { width: 96, textAlign: 'right' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.two },
   chip: { paddingHorizontal: Spacing.three, paddingVertical: Spacing.two, borderRadius: 999 },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three, minHeight: 44 },
   flex: { flex: 1 },
   share: { width: 88, textAlign: 'right' },
-  save: { backgroundColor: Positive, borderRadius: Spacing.two, paddingVertical: 14, alignItems: 'center' },
+  save: {
+    backgroundColor: Positive,
+    borderRadius: Spacing.two,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
   saveText: { color: '#fff', fontWeight: 700 },
   dim: { opacity: 0.6 },
 });

@@ -11,12 +11,13 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { confirmDestructive } from '@/lib/confirm';
-import { useStore } from '@/lib/store';
+import { meIn, useStore } from '@/lib/store';
 import { balances } from '@/lib/split';
 
 export default function GroupsScreen() {
   const groups = useStore((s) => s.groups);
   const expenses = useStore((s) => s.expenses);
+  const me = useStore((s) => s.me);
   const addGroup = useStore((s) => s.addGroup);
   const deleteGroup = useStore((s) => s.deleteGroup);
   const theme = useTheme();
@@ -123,7 +124,7 @@ export default function GroupsScreen() {
             </>
           }
           renderItem={({ item }) => {
-            const you = item.members[0]?.id;
+            const you = meIn(item, me);
             const groupExpenses = expenses.filter((e) => e.groupId === item.id);
             const net = balances(groupExpenses)[you] ?? 0;
             return (

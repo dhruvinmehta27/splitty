@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DeleteButton, EditToggle } from '@/components/delete-button';
+import { DeleteButton, EditToggle, HeaderButton } from '@/components/delete-button';
 import { NetLabel, Positive } from '@/components/net-label';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -11,12 +11,15 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { balances } from '@/lib/split';
 import { confirmDestructive, inform } from '@/lib/confirm';
-import { formatMoney, isInvolved, useStore, type Expense, type Member } from '@/lib/store';
+import { syncEnabled } from '@/lib/sync';
+import { formatMoney, isInvolved, meIn, useStore, type Expense, type Member } from '@/lib/store';
 
 export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const group = useStore((s) => s.groups.find((g) => g.id === id));
   const allExpenses = useStore((s) => s.expenses);
+  const me = useStore((s) => s.me);
+  const shared = useStore((s) => Boolean(s.shares[id]));
   const addMember = useStore((s) => s.addMember);
   const removeMember = useStore((s) => s.removeMember);
   const deleteExpense = useStore((s) => s.deleteExpense);
@@ -62,7 +65,19 @@ export default function GroupScreen() {
       <Stack.Screen
         options={{
           title: group.name,
-          headerRight: () => <EditToggle editing={editing} onPress={() => setEditing((e) => !e)} />,
+          headerRight: () => (
+            <View style={styles.headerButtons}>
+              {syncEnabled && (
+                <HeaderButton
+                  label={shared ? 'Shared' : 'Share'}
+                  onPress={() =>
+                    router.push({ pathname: '/group/[id]/share', params: { id: group.id } })
+                  }
+                />
+              )}
+              <EditToggle editing={editing} onPress={() => setEditing((e) => !e)} />
+            </View>
+          ),
         }}
       />
       <FlatList
@@ -77,7 +92,7 @@ export default function GroupScreen() {
             {group.members.map((m, i) => (
               <View key={m.id} style={styles.balanceRow}>
                 <ThemedText style={styles.flex}>{m.name}</ThemedText>
-                {editing && i > 0 ? (
+                {editing && m.id !== meIn(group, me) ? (
                   <DeleteButton label="Remove" onPress={() => remove(m)} />
                 ) : (
                   <NetLabel cents={net[m.id] ?? 0} currency={group.currency} />
@@ -144,6 +159,7 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     marginBottom: Spacing.two,
   },
+  headerButtons: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   balanceRow: { flexDirection: 'row', alignItems: 'center', minHeight: 28 },
   input: {
     fontSize: 16,

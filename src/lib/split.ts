@@ -46,7 +46,10 @@ export function computeSplit(
   if (mode === 'equal') {
     const included = memberIds.filter((id) => inputs[id] !== 'off');
     if (included.length === 0) return { ok: false, error: 'Pick at least one person' };
-    return { ok: true, shares: byWeights(total, Object.fromEntries(included.map((id) => [id, 1]))) };
+    return {
+      ok: true,
+      shares: byWeights(total, Object.fromEntries(included.map((id) => [id, 1]))),
+    };
   }
 
   if (mode === 'exact') {

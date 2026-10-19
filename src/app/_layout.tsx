@@ -5,6 +5,7 @@ import { useColorScheme } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useStore } from '@/lib/store';
+import { startSync } from '@/lib/sync';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,6 +20,8 @@ export default function RootLayout() {
     }
     return useStore.persist.onFinishHydration(() => setHydrated(true));
   }, [hydrated]);
+
+  useEffect(() => (hydrated ? startSync() : undefined), [hydrated]);
 
   if (!hydrated) return null;
 
@@ -36,6 +39,15 @@ export default function RootLayout() {
               animation: 'slide_from_bottom',
             }}
           />
+          <Stack.Screen
+            name="group/[id]/share"
+            options={{
+              title: 'Share group',
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen name="join/[id]" options={{ title: 'Join group' }} />
         </Stack>
       </ThemeProvider>
     </GestureHandlerRootView>

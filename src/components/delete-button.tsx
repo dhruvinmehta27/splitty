@@ -25,10 +25,14 @@ export function DeleteButton({
 }
 
 export function EditToggle({ editing, onPress }: { editing: boolean; onPress: () => void }) {
+  return <HeaderButton label={editing ? 'Done' : 'Edit'} onPress={onPress} />;
+}
+
+export function HeaderButton({ label, onPress }: { label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" style={styles.toggle}>
       <ThemedText type="smallBold" style={{ color: Positive }}>
-        {editing ? 'Done' : 'Edit'}
+        {label}
       </ThemedText>
     </Pressable>
   );

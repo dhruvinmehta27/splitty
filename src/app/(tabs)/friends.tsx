@@ -9,7 +9,7 @@ import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { owedTo } from '@/lib/split';
 import { confirmDestructive, inform } from '@/lib/confirm';
-import { formatMoney, isInvolved, useStore } from '@/lib/store';
+import { formatMoney, isInvolved, meIn, useStore } from '@/lib/store';
 
 type Friend = {
   key: string;
@@ -23,17 +23,17 @@ type Friend = {
 export default function FriendsScreen() {
   const groups = useStore((s) => s.groups);
   const expenses = useStore((s) => s.expenses);
+  const meByGroup = useStore((s) => s.me);
   const removeMember = useStore((s) => s.removeMember);
 
   // Members are per group, so the same friend in two groups is matched by name.
-  // The first member of every group is you.
   const friends = useMemo(() => {
     const byName = new Map<string, Friend>();
     for (const g of groups) {
-      const me = g.members[0]?.id;
+      const me = meIn(g, meByGroup);
       const groupExpenses = expenses.filter((e) => e.groupId === g.id);
       const owed = owedTo(me, groupExpenses);
-      for (const m of g.members.slice(1)) {
+      for (const m of g.members.filter((m) => m.id !== me)) {
         const key = m.name.trim().toLowerCase();
         const f = byName.get(key) ?? {
           key,
@@ -52,7 +52,7 @@ export default function FriendsScreen() {
     }
     const total = (f: Friend) => Object.values(f.owed).reduce((a, c) => a + Math.abs(c), 0);
     return [...byName.values()].sort((a, b) => total(b) - total(a) || a.name.localeCompare(b.name));
-  }, [groups, expenses]);
+  }, [groups, expenses, meByGroup]);
 
   async function remove(f: Friend) {
     if (f.expenseCount > 0) {

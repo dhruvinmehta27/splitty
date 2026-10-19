@@ -9,6 +9,7 @@ const group = (id) => ({
   currency: 'EUR',
   members: [{ id: `${id}-you`, name: 'You' }],
   createdAt: 0,
+  updatedAt: 0,
 });
 const expense = (id, groupId) => ({
   id,
@@ -19,6 +20,7 @@ const expense = (id, groupId) => ({
   mode: 'equal',
   shares: { [`${groupId}-you`]: 100 },
   createdAt: 0,
+  updatedAt: 0,
 });
 
 test('a backup round-trips', () => {
@@ -52,4 +54,16 @@ test('merging only adds what is missing', () => {
     ['e1', 'e2'],
   );
   assert.deepEqual(mergeBackup(merged, incoming).added, { groups: 0, expenses: 0 });
+});
+
+test('old backups get edit times from their creation times', () => {
+  const old = JSON.stringify({
+    app: 'splitty',
+    version: 1,
+    groups: [{ id: 'g', name: 'g', currency: 'EUR', members: [], createdAt: 5 }],
+    expenses: [{ id: 'e', groupId: 'g', amountCents: 1, shares: {}, createdAt: 7 }],
+  });
+  const parsed = parseBackup(old);
+  assert.equal(parsed.groups[0].updatedAt, 5);
+  assert.equal(parsed.expenses[0].updatedAt, 7);
 });

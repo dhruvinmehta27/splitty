@@ -46,7 +46,11 @@ export function parseBackup(text: string): Pick<Backup, 'groups' | 'expenses'> {
   if (!b.groups.every(validGroup) || !b.expenses.every(validExpense)) {
     throw new Error('This backup is damaged.');
   }
-  return { groups: b.groups, expenses: b.expenses };
+  // Backups from before edit times existed count their creation time as the last edit.
+  return {
+    groups: b.groups.map((g) => ({ ...g, updatedAt: g.updatedAt ?? g.createdAt })),
+    expenses: b.expenses.map((e) => ({ ...e, updatedAt: e.updatedAt ?? e.createdAt })),
+  };
 }
 
 /** Adds groups and expenses that aren't already present, matched by id, so importing twice is harmless. */
