@@ -40,7 +40,7 @@ export default function AddExpenseScreen() {
   const memberIds = group.members.map((m) => m.id);
   const total = parseCents(amount) ?? 0;
   const result = computeSplit(mode, total, memberIds, inputs[mode]);
-  const canSave = result.ok && description.trim() !== '';
+  const canSave = result.ok;
 
   function setInput(memberId: string, value: string) {
     setInputs((prev) => ({ ...prev, [mode]: { ...prev[mode], [memberId]: value } }));
@@ -50,7 +50,7 @@ export default function AddExpenseScreen() {
     if (!result.ok || !canSave) return;
     addExpense({
       groupId: group!.id,
-      description: description.trim(),
+      description: description.trim() || 'Expense',
       amountCents: total,
       paidBy,
       mode,
@@ -79,7 +79,7 @@ export default function AddExpenseScreen() {
         />
         <TextInput
           style={[styles.input, inputStyle]}
-          placeholder="What was it for?"
+          placeholder="What was it for? (optional)"
           placeholderTextColor={theme.textSecondary}
           value={description}
           onChangeText={setDescription}
