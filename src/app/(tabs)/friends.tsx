@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DeleteButton, EditToggle } from '@/components/delete-button';
 import { Negative, Positive } from '@/components/net-label';
+import { SwipeToDelete } from '@/components/swipe-to-delete';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -24,7 +24,6 @@ export default function FriendsScreen() {
   const groups = useStore((s) => s.groups);
   const expenses = useStore((s) => s.expenses);
   const removeMember = useStore((s) => s.removeMember);
-  const [editing, setEditing] = useState(false);
 
   // Members are per group, so the same friend in two groups is matched by name.
   // The first member of every group is you.
@@ -61,19 +60,20 @@ export default function FriendsScreen() {
         `Can't remove ${f.name} yet`,
         `${f.name} is part of ${f.expenseCount} expense${f.expenseCount === 1 ? '' : 's'}. Delete those first (Edit inside the group), then remove them here.`,
       );
-      return;
+      return false;
     }
     const where = f.groups.length === 1 ? `"${f.groups[0]}"` : `${f.groups.length} groups`;
     if (
-      await confirmDestructive(
+      !(await confirmDestructive(
         `Remove ${f.name}?`,
         `${f.name} will be removed from ${where}.`,
         'Remove',
-      )
+      ))
     ) {
-      for (const { groupId, memberId } of f.memberships) removeMember(groupId, memberId);
-      if (friends.length === 1) setEditing(false);
+      return false;
     }
+    for (const { groupId, memberId } of f.memberships) removeMember(groupId, memberId);
+    return true;
   }
 
   return (
@@ -85,14 +85,7 @@ export default function FriendsScreen() {
           contentInsetAdjustmentBehavior="automatic"
           data={friends}
           keyExtractor={(f) => f.key}
-          ListHeaderComponent={
-            <View style={styles.titleRow}>
-              <ThemedText type="subtitle">Friends</ThemedText>
-              {friends.length > 0 && (
-                <EditToggle editing={editing} onPress={() => setEditing((e) => !e)} />
-              )}
-            </View>
-          }
+          ListHeaderComponent={<ThemedText type="subtitle">Friends</ThemedText>}
           ListEmptyComponent={
             <ThemedText type="small" themeColor="textSecondary" style={styles.empty}>
               Friends you add to groups show up here
@@ -101,33 +94,33 @@ export default function FriendsScreen() {
           renderItem={({ item }) => {
             const amounts = Object.entries(item.owed).filter(([, c]) => c !== 0);
             return (
-              <View style={styles.row}>
-                <View style={styles.flex}>
-                  <ThemedText>{item.name}</ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {item.groups.join(', ')}
-                  </ThemedText>
-                </View>
-                <View style={styles.amounts}>
-                  {editing ? (
-                    <DeleteButton label="Remove" onPress={() => remove(item)} />
-                  ) : amounts.length === 0 ? (
+              <SwipeToDelete label="Remove" onDelete={() => remove(item)}>
+                <View style={styles.row}>
+                  <View style={styles.flex}>
+                    <ThemedText>{item.name}</ThemedText>
                     <ThemedText type="small" themeColor="textSecondary">
-                      settled up
+                      {item.groups.join(', ')}
                     </ThemedText>
-                  ) : (
-                    amounts.map(([currency, c]) => (
-                      <ThemedText
-                        key={currency}
-                        type="smallBold"
-                        style={{ color: c > 0 ? Positive : Negative }}>
-                        {c > 0 ? 'owes you ' : 'you owe '}
-                        {formatMoney(Math.abs(c), currency)}
+                  </View>
+                  <View style={styles.amounts}>
+                    {amounts.length === 0 ? (
+                      <ThemedText type="small" themeColor="textSecondary">
+                        settled up
                       </ThemedText>
-                    ))
-                  )}
+                    ) : (
+                      amounts.map(([currency, c]) => (
+                        <ThemedText
+                          key={currency}
+                          type="smallBold"
+                          style={{ color: c > 0 ? Positive : Negative }}>
+                          {c > 0 ? 'owes you ' : 'you owe '}
+                          {formatMoney(Math.abs(c), currency)}
+                        </ThemedText>
+                      ))
+                    )}
+                  </View>
                 </View>
-              </View>
+              </SwipeToDelete>
             );
           }}
         />
@@ -150,6 +143,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.one,
   },
   flex: { flex: 1 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   amounts: { alignItems: 'flex-end' },
 });

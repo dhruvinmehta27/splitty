@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable as RowPressable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { DeleteButton, EditToggle } from '@/components/delete-button';
 import { NetLabel, Positive } from '@/components/net-label';
+import { SwipeToDelete } from '@/components/swipe-to-delete';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { MaxContentWidth, Spacing } from '@/constants/theme';
@@ -18,7 +19,6 @@ export default function GroupsScreen() {
   const expenses = useStore((s) => s.expenses);
   const addGroup = useStore((s) => s.addGroup);
   const deleteGroup = useStore((s) => s.deleteGroup);
-  const [editing, setEditing] = useState(false);
   const theme = useTheme();
   const [name, setName] = useState('');
   const [friend, setFriend] = useState('');
@@ -44,10 +44,11 @@ export default function GroupsScreen() {
     const detail = expenseCount
       ? `Its ${expenseCount} expense${expenseCount === 1 ? '' : 's'} will be deleted too.`
       : 'It has no expenses.';
-    if (await confirmDestructive(`Delete "${groupName}"?`, `${detail} This can't be undone.`)) {
-      deleteGroup(id);
-      if (groups.length === 1) setEditing(false);
+    if (!(await confirmDestructive(`Delete "${groupName}"?`, `${detail} This can't be undone.`))) {
+      return false;
     }
+    deleteGroup(id);
+    return true;
   }
 
   const inputStyle = [styles.input, { color: theme.text, backgroundColor: theme.background }];
@@ -64,12 +65,7 @@ export default function GroupsScreen() {
           keyExtractor={(g) => g.id}
           ListHeaderComponent={
             <>
-              <View style={styles.titleRow}>
-                <ThemedText type="subtitle">Groups</ThemedText>
-                {groups.length > 0 && (
-                  <EditToggle editing={editing} onPress={() => setEditing((e) => !e)} />
-                )}
-              </View>
+              <ThemedText type="subtitle">Groups</ThemedText>
               <ThemedView type="backgroundElement" style={styles.card}>
                 <ThemedText type="smallBold">New group</ThemedText>
                 <TextInput
@@ -131,27 +127,24 @@ export default function GroupsScreen() {
             const groupExpenses = expenses.filter((e) => e.groupId === item.id);
             const net = balances(groupExpenses)[you] ?? 0;
             return (
-              <Pressable
-                disabled={editing}
-                onPress={() =>
-                  router.push({
-                    pathname: '/group/[id]',
-                    params: { id: item.id },
-                  })
-                }
-                style={({ pressed }) => [styles.row, pressed && styles.dim]}>
-                <View style={styles.rowText}>
-                  <ThemedText>{item.name}</ThemedText>
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {item.members.map((m) => m.name).join(', ')}
-                  </ThemedText>
-                </View>
-                {editing ? (
-                  <DeleteButton onPress={() => remove(item.id, item.name, groupExpenses.length)} />
-                ) : (
+              <SwipeToDelete onDelete={() => remove(item.id, item.name, groupExpenses.length)}>
+                <RowPressable
+                  onPress={() =>
+                    router.push({
+                      pathname: '/group/[id]',
+                      params: { id: item.id },
+                    })
+                  }
+                  style={({ pressed }) => [styles.row, pressed && styles.dim]}>
+                  <View style={styles.rowText}>
+                    <ThemedText>{item.name}</ThemedText>
+                    <ThemedText type="small" themeColor="textSecondary">
+                      {item.members.map((m) => m.name).join(', ')}
+                    </ThemedText>
+                  </View>
                   <NetLabel cents={net} currency={item.currency} />
-                )}
-              </Pressable>
+                </RowPressable>
+              </SwipeToDelete>
             );
           }}
         />
@@ -186,11 +179,6 @@ const styles = StyleSheet.create({
   buttonText: { color: '#fff', fontWeight: 700 },
   dim: { opacity: 0.6 },
   flex: { flex: 1 },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
   friendRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   plus: {
     width: 44,

@@ -2,6 +2,7 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import { useColorScheme } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useStore } from '@/lib/store';
 
@@ -22,15 +23,21 @@ export default function RootLayout() {
   if (!hydrated) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Groups' }} />
-        <Stack.Screen name="group/[id]/index" options={{ title: '' }} />
-        <Stack.Screen
-          name="group/[id]/add-expense"
-          options={{ title: 'Add expense', presentation: 'modal', animation: 'slide_from_bottom' }}
-        />
-      </Stack>
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Groups' }} />
+          <Stack.Screen name="group/[id]/index" options={{ title: '' }} />
+          <Stack.Screen
+            name="group/[id]/add-expense"
+            options={{
+              title: 'Add expense',
+              presentation: 'modal',
+              animation: 'slide_from_bottom',
+            }}
+          />
+        </Stack>
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }
