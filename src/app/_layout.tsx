@@ -24,7 +24,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Back' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Groups' }} />
         <Stack.Screen name="group/[id]/index" options={{ title: '' }} />
         <Stack.Screen
           name="group/[id]/add-expense"
